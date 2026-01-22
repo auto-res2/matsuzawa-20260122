@@ -1,0 +1,32 @@
+run_id: comparative-1-resnet18-cifar10
+method: Fixed Augmentation Weighting Baseline
+model:
+  name: resnet18
+dataset:
+  name: cifar10
+  preprocessing:
+    normalize:
+      mean: [0.4914, 0.4822, 0.4465]
+      std: [0.2470, 0.2435, 0.2616]
+  split:
+    train: 0.9
+    val: 0.1
+training:
+  learning_rate: 0.001
+  batch_size: 128
+  epochs: 100
+  optimizer: adam
+  scheduler: cosine
+  warmup_steps: 100
+  weight_decay: 0.0001
+  gradient_clip: null
+  seed: 42
+  additional_params:
+    fixed_weight: 0.5
+optuna:
+  n_trials: 20
+  search_spaces:
+    - param_name: fixed_weight
+      distribution_type: uniform
+      low: 0.3
+      high: 0.7

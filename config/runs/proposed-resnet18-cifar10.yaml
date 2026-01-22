@@ -1,0 +1,41 @@
+run_id: proposed-resnet18-cifar10
+method: AALCR++
+model:
+  name: resnet18
+dataset:
+  name: cifar10
+  preprocessing:
+    normalize:
+      mean: [0.4914, 0.4822, 0.4465]
+      std: [0.2470, 0.2435, 0.2616]
+  split:
+    train: 0.9
+    val: 0.1
+training:
+  learning_rate: 0.001
+  batch_size: 128
+  epochs: 100
+  optimizer: adam
+  scheduler: cosine
+  warmup_steps: 100
+  weight_decay: 0.0001
+  gradient_clip: null
+  seed: 42
+  additional_params:
+    lambda_max: 1.0
+    aux_branch_lr: 0.001
+optuna:
+  n_trials: 20
+  search_spaces:
+    - param_name: lambda_max
+      distribution_type: uniform
+      low: 0.5
+      high: 1.5
+    - param_name: aux_branch_lr
+      distribution_type: loguniform
+      low: 0.0001
+      high: 0.01
+    - param_name: weight_decay
+      distribution_type: loguniform
+      low: 1e-05
+      high: 0.001

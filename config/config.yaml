@@ -1,0 +1,30 @@
+defaults:
+  - _self_
+
+# overridable from CLI --------------------------------------------------------
+run: null  # e.g. proposed-resnet18-cifar10
+results_dir: outputs
+mode: full  # full | trial
+
+# WandB global configuration --------------------------------------------------
+wandb:
+  entity: gengaru617-personal
+  project: 2026-01-22
+  mode: online  # overwritten in trial mode
+
+# Optuna stub (per-run YAML will override) ------------------------------------
+optuna:
+  n_trials: 0
+  search_spaces: []
+
+training:
+  batch_size: 128
+  epochs: 100
+  learning_rate: 0.001
+  optimizer: adam
+  scheduler: cosine
+  warmup_steps: 100
+  weight_decay: 0.0001
+  gradient_clip: null
+  seed: 42
+  additional_params: {}
