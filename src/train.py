@@ -343,7 +343,10 @@ def main(cfg: DictConfig) -> None:  # noqa: C901 – complex but required
     if not run_cfg_path.exists():
         raise FileNotFoundError(f"Run-specific configuration {run_cfg_path} not found")
 
+    # Disable struct mode to allow new keys in additional_params
+    OmegaConf.set_struct(cfg, False)
     cfg = OmegaConf.merge(cfg, OmegaConf.load(run_cfg_path))  # type: ignore[assignment]
+    OmegaConf.set_struct(cfg, True)
 
     # ------------------------------------------------------------------
     # Mode-specific overrides                                           
