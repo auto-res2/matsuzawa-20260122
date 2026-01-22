@@ -12,3 +12,11 @@ Executing: /workspace/actions-runner/_work/matsuzawa-20260122/matsuzawa-20260122
 Saved final metrics to /workspace/actions-runner/_work/matsuzawa-20260122/matsuzawa-20260122/.research/results/proposed-resnet18-cifar10_final_metrics.json
 === [TRIAL RUN] PASSED for proposed-resnet18-cifar10 at Thu Jan 22 04:04:04 UTC 2026 ===
 
+=== [UV SYNC] Start at Thu Jan 22 04:05:28 UTC 2026 ===
+=== [UV SYNC] Finished successfully at Thu Jan 22 04:06:08 UTC 2026 ===
+=== [FULL EXPERIMENT] Start for proposed-resnet18-cifar10 at Thu Jan 22 04:06:08 UTC 2026 ===
+Executing: /workspace/actions-runner/_work/matsuzawa-20260122/matsuzawa-20260122/.venv/bin/python3 -u -m src.train run=proposed-resnet18-cifar10 results_dir=.research/results mode=full run_id=None method=None
+W&B URL: https://wandb.ai/gengaru617-personal/2026-01-22/runs/proposed-resnet18-cifar10
+[Optuna] Best parameters: {'lambda_max': 1.190079838062631, 'aux_branch_lr': 0.006335973518599369, 'weight_decay': 2.428216026611292e-05}
+Saved final metrics to /workspace/actions-runner/_work/matsuzawa-20260122/matsuzawa-20260122/.research/results/proposed-resnet18-cifar10_final_metrics.json
+=== [FULL EXPERIMENT] PASSED for proposed-resnet18-cifar10 at Thu Jan 22 04:36:04 UTC 2026 ===
