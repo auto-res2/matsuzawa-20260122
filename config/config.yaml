@@ -6,6 +6,25 @@ run: null  # e.g. proposed-resnet18-cifar10
 results_dir: outputs
 mode: full  # full | trial
 
+# Run-specific fields (to be overridden by run configs) -----------------------
+run_id: null
+method: null
+
+# Model configuration ----------------------------------------------------------
+model:
+  name: null
+
+# Dataset configuration --------------------------------------------------------
+dataset:
+  name: null
+  preprocessing:
+    normalize:
+      mean: []
+      std: []
+  split:
+    train: 0.9
+    val: 0.1
+
 # WandB global configuration --------------------------------------------------
 wandb:
   entity: gengaru617-personal
