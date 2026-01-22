@@ -560,5 +560,99 @@
     "experimental_code": "import torch\nimport torch.nn.functional as F\n\n# Compute per-sample augmentation intensity based on normalized pixel difference\n\ndef compute_augmentation_intensity(original, augmented):\n    diff = torch.abs(original - augmented)\n    intensity = diff.mean(dim=[1,2,3])\n    # Normalize intensity to [0,1]\n    intensity_norm = (intensity - intensity.min()) / (intensity.max() - intensity.min() + 1e-8)\n    return intensity_norm\n\n# Auxiliary branch to estimate label confidence using a lightweight prediction refinement module\n\ndef estimate_label_confidence(model, images):\n    # Use a lightweight branch attached to the model for confidence estimation, here using max softmax probability\n    logits = model(images)\n    probs = F.softmax(logits, dim=1)\n    confidence, _ = torch.max(probs, dim=1)\n    return confidence\n\n# Dual-adaptive loss function combining classification and consistency losses\n\ndef adaptive_loss(model, original_images, augmented_images, labels, base_criterion=F.cross_entropy, lambda_max=1.0):\n    # Forward pass to get logits\n    logits_orig = model(original_images)\n    logits_aug = model(augmented_images)\n\n    # Standard cross-entropy loss\n    loss_ce = base_criterion(logits_orig, labels)\n\n    # Consistency loss measured via KL divergence between soft predictions\n    p_orig = F.softmax(logits_orig, dim=1)\n    logp_aug = F.log_softmax(logits_aug, dim=1)\n    loss_consist = F.kl_div(logp_aug, p_orig, reduction='batchmean')\n\n    # Compute augmentation intensity\n    intensity_norm = compute_augmentation_intensity(original_images, augmented_images)\n\n    # Estimate label confidence\n    confidence = estimate_label_confidence(model, original_images)\n\n    # Compute adaptive weight: high augmentation intensity and low confidence emphasize consistency loss\n    weight = intensity_norm * (1 - confidence)  \n    weight_avg = weight.mean()\n\n    # Combine losses in a dual-adaptive way\n    loss = (1 - weight_avg) * loss_ce + lambda_max * weight_avg * loss_consist\n    return loss\n\n# Example usage within a training loop:\n# for original_images, labels in dataloader:\n#     augmented_images = data_augment(original_images)  # function for image augmentation\n#     loss = adaptive_loss(model, original_images, augmented_images, labels)\n#     loss.backward()\n#     optimizer.step()",
     "expected_result": "We expect AALCR++ to improve classification accuracy by an additional 2-3% relative to fixed-weight baselines on CIFAR-10 and CIFAR-100. Additionally, models trained with AALCR++ should exhibit lower Expected Calibration Error (ECE), indicating better-calibrated predictions. Ablation studies should confirm that both the augmentation intensity component and the label confidence branch independently contribute to the enhanced performance.",
     "expected_conclusion": "The proposed AALCR++ framework advances data-efficient image classification by combining dynamic, per-sample loss modulation based on both augmentation intensity and learned label confidence. This dual-adaptive mechanism significantly improves both accuracy and calibration, addressing limitations of previous fixed or single-factor approaches. The method is not only novel in its integrated design but also practically valuable, enabling robust and easily deployable training pipelines for scenarios with limited data and challenging augmentation dynamics."
+  },
+  "experimental_design": {
+    "experiment_summary": "The experiment aims to evaluate the effectiveness of the proposed Adaptive Augmentation and Label Confidence Regularization (AALCR++) framework in data-efficient image classification. The goal is to improve model accuracy and calibration by dynamically adjusting the weights of classification and consistency losses on a per-sample basis using a dual-adaptive mechanism. The primary task is image classification on CIFAR-10, where models are trained to correctly label images while adapting to varying augmentation intensities and label uncertainty. The workflow includes computing a normalized augmentation intensity metric and estimating label confidence through a lightweight auxiliary branch, which together determine adaptive loss weights. The experimental scale is adjusted to fit within the available computational resources (self-hosted GPU Runner with NVIDIA A100/H200), ensuring training runs efficiently on CIFAR-10 using a widely-used architecture (ResNet-18) over a moderate number of epochs and batch size.",
+    "runner_config": {
+      "runner_label": [
+        "self-hosted",
+        "gpu-runner"
+      ],
+      "description": "NVIDIA A100 or H200, VRAM: 80 GB or more, RAM: 2048 GB or more"
+    },
+    "evaluation_metrics": [
+      {
+        "name": "accuracy",
+        "description": "Accuracy is computed as the percentage of correctly classified images over the total number of images. Correct predictions are determined by selecting the class with the highest predicted probability. This metric is suitable for image classification tasks, providing a straightforward measure of model performance. A learning curve showing accuracy over epochs can be visualized to monitor training progress."
+      },
+      {
+        "name": "Expected Calibration Error (ECE)",
+        "description": "ECE measures the discrepancy between the predicted probabilities and the observed frequencies of correct predictions. It is calculated by partitioning predictions into bins, computing the absolute difference between the confidence (average predicted probability) and the accuracy for each bin, and then taking a weighted average of these differences. ECE is critical for assessing model calibration, particularly when adaptive loss modulation for label confidence is used. A reliability diagram is a relevant visualization that can illustrate the calibration performance."
+      }
+    ],
+    "models_to_use": [
+      "ResNet-18 (approx 11 million parameters)"
+    ],
+    "datasets_to_use": [
+      "CIFAR-10"
+    ],
+    "proposed_method": {
+      "method_name": "AALCR++",
+      "description": "AALCR++ integrates a dual-adaptive mechanism that computes per-sample adaptive weights by fusing normalized augmentation intensity and learned label confidence. This method modulates the balance between classification (cross-entropy) and consistency (KL divergence) losses, ensuring robust performance under strong augmentations and improved calibration.",
+      "training_config": {
+        "learning_rate": 0.001,
+        "batch_size": 128,
+        "epochs": 100,
+        "optimizer": "adam",
+        "warmup_steps": 100,
+        "weight_decay": 0.0001,
+        "scheduler": "cosine",
+        "seed": 42,
+        "additional_params": "{\"lambda_max\": 1.0, \"aux_branch_lr\": 0.001}"
+      },
+      "optuna_config": {
+        "enabled": true,
+        "n_trials": 20,
+        "search_spaces": [
+          {
+            "param_name": "lambda_max",
+            "distribution_type": "uniform",
+            "low": 0.5,
+            "high": 1.5
+          },
+          {
+            "param_name": "aux_branch_lr",
+            "distribution_type": "loguniform",
+            "low": 0.0001,
+            "high": 0.01
+          },
+          {
+            "param_name": "weight_decay",
+            "distribution_type": "loguniform",
+            "low": 1e-05,
+            "high": 0.001
+          }
+        ]
+      }
+    },
+    "comparative_methods": [
+      {
+        "method_name": "Fixed Augmentation Weighting Baseline",
+        "description": "A baseline approach that uses a static weighted combination of classification and consistency losses, without adapting the weights based on augmentation intensity or label confidence. This method is common in standard augmentation schemes and serves as a comparison to highlight the benefits of the dual-adaptive AALCR++ framework.",
+        "training_config": {
+          "learning_rate": 0.001,
+          "batch_size": 128,
+          "epochs": 100,
+          "optimizer": "adam",
+          "warmup_steps": 100,
+          "weight_decay": 0.0001,
+          "scheduler": "cosine",
+          "seed": 42,
+          "additional_params": "{\"fixed_weight\": 0.5}"
+        },
+        "optuna_config": {
+          "enabled": true,
+          "n_trials": 20,
+          "search_spaces": [
+            {
+              "param_name": "fixed_weight",
+              "distribution_type": "uniform",
+              "low": 0.3,
+              "high": 0.7
+            }
+          ]
+        }
+      }
+    ]
   }
 }
